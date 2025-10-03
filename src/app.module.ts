@@ -17,7 +17,6 @@ import { ContactsModule } from './contacts/contacts.module';
         const dbType = (
           config.get<string>('DATABASE_TYPE') ?? 'mysql'
         ).toLowerCase();
-        console.log('🚀 ~ AppModule ~ dbType:', dbType);
 
         if (dbType === 'mysql') {
           return {
