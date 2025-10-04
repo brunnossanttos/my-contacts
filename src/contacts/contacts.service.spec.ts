@@ -20,6 +20,7 @@ const mockContactRepo = (): MockRepo<Contact> => ({
   findOneBy: jest.fn(),
   findAndCount: jest.fn(),
   save: jest.fn(),
+  preload: jest.fn(),
 });
 
 describe('ContactsService', () => {
@@ -124,96 +125,188 @@ describe('ContactsService', () => {
     });
   });
 
-  it('should return paginated result with filters (name + cellphone)', async () => {
-    const dto: FindAllContactsDto = {
-      name: 'bru',
-      cellphone: '1199',
-      page: 2,
-      limit: 5,
-    };
+  describe('findAll', () => {
+    it('should return paginated result with filters (name + cellphone)', async () => {
+      const dto: FindAllContactsDto = {
+        name: 'bru',
+        cellphone: '1199',
+        page: 2,
+        limit: 5,
+      };
 
-    const rows: Contact[] = [
-      {
-        id: '1',
+      const rows: Contact[] = [
+        {
+          id: '1',
+          name: 'Bruno Santos',
+          cellphone: '11990000001',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          name: 'Bruna Neves',
+          cellphone: '11990000002',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      contactRepo.findAndCount!.mockResolvedValue([rows, 12]);
+
+      const result = await service.findAll(dto);
+
+      expect(contactRepo.findAndCount).toHaveBeenCalledTimes(1);
+
+      const arg = contactRepo.findAndCount!.mock.calls[0][0] as {
+        skip: number;
+        take: number;
+        order: { createdAt: 'DESC' };
+        where: { name?: any; cellphone?: any };
+      };
+
+      expect(arg.skip).toBe((dto.page! - 1) * dto.limit!);
+      expect(arg.take).toBe(dto.limit);
+      expect(arg.order).toEqual({ createdAt: 'DESC' });
+
+      expect(arg.where.name).toBeInstanceOf(FindOperator);
+      expect(arg.where.cellphone).toBeInstanceOf(FindOperator);
+      expect((arg.where.name as FindOperator<string>).value).toBe('%bru%');
+      expect((arg.where.cellphone as FindOperator<string>).value).toBe(
+        '%1199%',
+      );
+
+      expect(result).toEqual({
+        data: rows,
+        page: 2,
+        limit: 5,
+        total: 12,
+        totalPages: 3,
+      });
+    });
+
+    it('should work without filters and use default pagination', async () => {
+      const dto: FindAllContactsDto = {};
+      contactRepo.findAndCount!.mockResolvedValue([[], 0]);
+
+      const result = await service.findAll(dto);
+
+      const arg = contactRepo.findAndCount!.mock.calls[0][0] as {
+        skip: number;
+        take: number;
+        order: { createdAt: 'DESC' };
+        where: { name?: any; cellphone?: any };
+      };
+      expect(arg.where).toEqual({});
+      expect(arg.skip).toBe(0);
+      expect(arg.take).toBe(30);
+
+      expect(result).toEqual({
+        data: [],
+        page: 1,
+        limit: 30,
+        total: 0,
+        totalPages: 1,
+      });
+    });
+
+    it('should propagate errors from repository', async () => {
+      const dto: FindAllContactsDto = { name: 'x' };
+      contactRepo.findAndCount!.mockRejectedValue(new Error('db down'));
+
+      await expect(service.findAll(dto)).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      await expect(service.findAll(dto)).rejects.toThrow(
+        'Error to find contacts: internal server error',
+      );
+    });
+  });
+
+  describe('update (preload)', () => {
+    it('should update and save when contact exists', async () => {
+      const id = uuidv4();
+      const dto = { name: 'Updated Name', cellphone: '11991112222' };
+
+      const merged: Contact = {
+        id,
+        name: dto.name,
+        cellphone: dto.cellphone,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      contactRepo.preload!.mockResolvedValue(merged);
+      contactRepo.save!.mockImplementation(async (entity: Contact) => ({
+        ...entity,
+        updatedAt: new Date(),
+      }));
+
+      const result = await service.update(id, dto as any);
+
+      expect(contactRepo.preload).toHaveBeenCalledWith({ id, ...dto });
+      expect(contactRepo.save).toHaveBeenCalledTimes(1);
+      expect(result.name).toBe(dto.name);
+      expect(result.cellphone).toBe(dto.cellphone);
+    });
+
+    it('should propagate NotFoundException when preload returns undefined', async () => {
+      const id = uuidv4();
+      contactRepo.preload!.mockResolvedValue(undefined);
+
+      await expect(
+        service.update(id, { name: 'x' } as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      await expect(service.update(id, { name: 'x' } as any)).rejects.toThrow(
+        `Contact with id "${id}" not found`,
+      );
+
+      expect(contactRepo.preload).toHaveBeenCalledWith({ id, name: 'x' });
+      expect(contactRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should wrap unique violation into InternalServerErrorException (since throwServiceError encapsulates)', async () => {
+      const id = uuidv4();
+      const dto = { cellphone: '11998887777' };
+
+      const merged: Contact = {
+        id,
         name: 'Bruno Santos',
-        cellphone: '11990000001',
+        cellphone: dto.cellphone,
         createdAt: new Date(),
         updatedAt: new Date(),
-      },
-      {
-        id: '2',
-        name: 'Bruna Neves',
-        cellphone: '11990000002',
+      };
+      contactRepo.preload!.mockResolvedValue(merged);
+
+      const uniqueErr = Object.assign(new Error('duplicate key'), {
+        code: '23505',
+      });
+      contactRepo.save!.mockRejectedValue(uniqueErr);
+
+      await expect(service.update(id, dto as any)).rejects.toMatchObject({
+        name: 'InternalServerErrorException',
+        message: 'Error to update contact: internal server error',
+      });
+    });
+
+    it('should wrap other errors into InternalServerErrorException', async () => {
+      const id = uuidv4();
+      const dto = { name: 'x' };
+
+      const merged: Contact = {
+        id,
+        name: 'x',
+        cellphone: '11990000000',
         createdAt: new Date(),
         updatedAt: new Date(),
-      },
-    ];
+      };
+      contactRepo.preload!.mockResolvedValue(merged);
+      contactRepo.save!.mockRejectedValue(new Error('db down'));
 
-    contactRepo.findAndCount!.mockResolvedValue([rows, 12]);
-
-    const result = await service.findAll(dto);
-
-    expect(contactRepo.findAndCount).toHaveBeenCalledTimes(1);
-
-    const arg = contactRepo.findAndCount!.mock.calls[0][0] as {
-      skip: number;
-      take: number;
-      order: { createdAt: 'DESC' };
-      where: { name?: any; cellphone?: any };
-    };
-
-    expect(arg.skip).toBe((dto.page! - 1) * dto.limit!);
-    expect(arg.take).toBe(dto.limit);
-    expect(arg.order).toEqual({ createdAt: 'DESC' });
-
-    expect(arg.where.name).toBeInstanceOf(FindOperator);
-    expect(arg.where.cellphone).toBeInstanceOf(FindOperator);
-    expect((arg.where.name as FindOperator<string>).value).toBe('%bru%');
-    expect((arg.where.cellphone as FindOperator<string>).value).toBe('%1199%');
-
-    expect(result).toEqual({
-      data: rows,
-      page: 2,
-      limit: 5,
-      total: 12,
-      totalPages: 3,
+      await expect(service.update(id, dto as any)).rejects.toMatchObject({
+        name: 'InternalServerErrorException',
+        message: 'Error to update contact: internal server error',
+      });
     });
-  });
-
-  it('should work without filters and use default pagination', async () => {
-    const dto: FindAllContactsDto = {};
-    contactRepo.findAndCount!.mockResolvedValue([[], 0]);
-
-    const result = await service.findAll(dto);
-
-    const arg = contactRepo.findAndCount!.mock.calls[0][0] as {
-      skip: number;
-      take: number;
-      order: { createdAt: 'DESC' };
-      where: { name?: any; cellphone?: any };
-    };
-    expect(arg.where).toEqual({});
-    expect(arg.skip).toBe(0);
-    expect(arg.take).toBe(30);
-
-    expect(result).toEqual({
-      data: [],
-      page: 1,
-      limit: 30,
-      total: 0,
-      totalPages: 1,
-    });
-  });
-
-  it('should propagate errors from repository', async () => {
-    const dto: FindAllContactsDto = { name: 'x' };
-    contactRepo.findAndCount!.mockRejectedValue(new Error('db down'));
-
-    await expect(service.findAll(dto)).rejects.toBeInstanceOf(
-      InternalServerErrorException,
-    );
-    await expect(service.findAll(dto)).rejects.toThrow(
-      'Error to find contacts: internal server error',
-    );
   });
 });

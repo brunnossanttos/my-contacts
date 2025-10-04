@@ -71,12 +71,28 @@ export class ContactsService {
 
       return contact;
     } catch (error) {
-      throwServiceError(error, 'Error to find contact');
+      throwServiceError(error, 'Error to find contact', this.logger);
     }
   }
 
-  update(id: number, updateContactDto: UpdateContactDto) {
-    return `This action updates a #${id} contact`;
+  async update(
+    id: string,
+    updateContactDto: UpdateContactDto,
+  ): Promise<Contact> {
+    try {
+      const merged = await this.contactsRepo.preload({
+        id,
+        ...updateContactDto,
+      });
+
+      if (!merged)
+        throw new NotFoundException(`Contact with id "${id}" not found`);
+
+      const saved = await this.contactsRepo.save(merged);
+      return saved;
+    } catch (error) {
+      throwServiceError(error, 'Error to update contact', this.logger);
+    }
   }
 
   remove(id: number) {

@@ -14,6 +14,7 @@ describe('ContactsController', () => {
     create: jest.fn(),
     findOne: jest.fn(),
     findAll: jest.fn(),
+    update: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -159,6 +160,45 @@ describe('ContactsController', () => {
         'boom',
       );
       expect(serviceMock.findAll).toHaveBeenCalledWith(query);
+    });
+  });
+
+  describe('update', () => {
+    it('should call service.update and return the updated contact', async () => {
+      const id = uuidv4();
+      const dto = { name: 'Updated Name', cellphone: '11988887777' };
+
+      const updated: Contact = {
+        id,
+        name: dto.name,
+        cellphone: dto.cellphone,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      if (!serviceMock.update) serviceMock.update = jest.fn();
+      serviceMock.update.mockResolvedValue(updated);
+
+      const result = await contactsController.update(id, dto as any);
+
+      expect(serviceMock.update).toHaveBeenCalledTimes(1);
+      expect(serviceMock.update).toHaveBeenCalledWith(id, dto);
+      expect(result).toEqual(updated);
+    });
+
+    it('should propagate NotFoundException from service.update', async () => {
+      const id = uuidv4();
+      const dto = { name: 'Qualquer' };
+
+      if (!serviceMock.update) serviceMock.update = jest.fn();
+      serviceMock.update.mockRejectedValue(
+        new NotFoundException(`Contact with id "${id}" not found`),
+      );
+
+      await expect(
+        contactsController.update(id, dto as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(serviceMock.update).toHaveBeenCalledWith(id, dto);
     });
   });
 });
