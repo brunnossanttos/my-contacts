@@ -1,98 +1,265 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# My Contacts — REST API (NestJS + TypeORM + MySQL)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A simple contacts API built with **NestJS 11**, **TypeORM 0.3**, and **MySQL**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This README explains how to configure, run, and test the project locally, including connecting to a local MySQL instance.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Table of Contents
 
-## Project setup
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [Environment Setup](#environment-setup)
+* [Running the App](#running-the-app)
+* [Database Setup (MySQL)](#database-setup-mysql)
+* [Available npm Scripts](#available-npm-scripts)
+* [API Overview](#api-overview)
+* [Testing](#testing)
+* [Linting & Formatting](#linting--formatting)
+* [Project Structure](#project-structure)
+* [Troubleshooting](#troubleshooting)
+* [Migrations (Optional for Prod)](#migrations-optional-for-prod)
+* [License](#license)
 
-```bash
-$ npm install
-```
+---
 
-## Compile and run the project
+## Prerequisites
 
-```bash
-# development
-$ npm run start
+* **Node.js**: v18+ (recommended v20 LTS)
+* **npm**: v9+ (bundled with Node)
+* **MySQL**: 5.7+ (recommended 8.0+) running locally
+* **Git** (optional)
 
-# watch mode
-$ npm run start:dev
+---
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+## Installation
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone https://github.com/brunnossanttos/my-contacts.git
+cd my-contacts
+npm install
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Environment Setup
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Copy the example environment file and adjust values for your local MySQL:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cp env.example .env
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+`.env` fields:
 
-## Resources
+```ini
+DATABASE_TYPE=mysql
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USERNAME=user
+DATABASE_PASSWORD=password
+DATABASE_NAME=db_name
+DATABASE_SYNCHRONIZE=true
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+> **Notes**
+>
+> * `DATABASE_SYNCHRONIZE=true` lets TypeORM auto-create/update tables in development.
+>   In production, **set this to `false`** and use migrations instead.
+> * Create the database before starting the app:
+>
+>   ```sql
+>   CREATE DATABASE db_name CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+>   ```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+## Running the App
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Development (watch mode)
 
-## Stay in touch
+```bash
+npm run start:dev
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+> The server will start on the port configured in your Nest bootstrap (usually `http://localhost:3000`).
 
-## License
+### Production build
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+npm run build
+npm run start:prod
+```
+
+---
+
+## Database Setup (MySQL)
+
+Ensure your local MySQL is running and the credentials in `.env` are valid. If needed:
+
+```sql
+CREATE USER 'user'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON db_name.* TO 'user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### Common MySQL Gotchas
+
+* **“Invalid default value for 'createdAt'”**
+  Use TypeORM’s date columns without custom defaults:
+
+  ```ts
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+  ```
+
+  On older MySQL/strict modes, manually setting `DEFAULT CURRENT_TIMESTAMP` on these columns can cause errors.
+
+* **Timezone**
+  If timestamps look off, consider setting the server/session time zone:
+
+  ```sql
+  SET time_zone = '+00:00';
+  ```
+
+---
+
+## Available npm Scripts
+
+From `package.json`:
+
+* `npm run start` — start Nest
+* `npm run start:dev` — start with watch (dev)
+* `npm run start:debug` — start with debug + watch
+* `npm run start:prod` — run compiled app (`dist`)
+* `npm run build` — compile TypeScript
+* `npm run lint` — ESLint (with `--fix`)
+* `npm run format` — Prettier
+* `npm test` — unit tests
+* `npm run test:watch` — watch mode tests
+* `npm run test:cov` — test coverage
+* `npm run test:debug` — run Jest in debug mode
+* `npm run test:e2e` — e2e tests (if configured)
+
+---
+
+## API Overview
+
+Base path (typical): `http://localhost:3000/contacts`
+
+### Create
+
+```
+POST /contacts
+Content-Type: application/json
+
+{
+  "name": "Bruno Santos",
+  "cellphone": "11999999999"
+}
+```
+
+### Read One
+
+```
+GET /contacts/:id
+```
+
+### Read Many (filters + pagination)
+
+```
+GET /contacts?name=bru&cellphone=1199&page=1&limit=30
+```
+
+### Update
+
+```
+PATCH /contacts/:id
+Content-Type: application/json
+
+{
+  "name": "New Name",
+  "cellphone": "11998887777"
+}
+```
+
+### Delete
+
+```
+DELETE /contacts/:id
+```
+
+> Recommended to return **204 No Content** (no response body).
+
+> The `cellphone` field is **unique**. Creating/updating to a duplicate will fail at the DB layer.
+
+---
+
+## Testing
+
+### Unit Tests
+
+```bash
+npm test
+# or
+npm run test:watch
+```
+
+### Coverage
+
+```bash
+npm run test:cov
+```
+
+> Uses **Jest** + **ts-jest**. Unit tests live under `src/**/*.spec.ts`.
+
+---
+
+## Linting & Formatting
+
+```bash
+npm run lint
+npm run format
+```
+
+* ESLint 9 + TypeScript ESLint 8
+* Prettier 3
+
+---
+
+## Troubleshooting
+
+* **Unable to connect to DB / ECONNREFUSED**
+
+  * Verify MySQL is running at `DATABASE_HOST:PORT`.
+  * Check username/password and that the DB exists.
+
+* **`Invalid default value for 'createdAt'`**
+
+  * Remove manual `default` and `type` overrides from `@CreateDateColumn` / `@UpdateDateColumn` (see [Database Setup](#database-setup-mysql)).
+
+* **Unique constraint on `cellphone`**
+
+  * MySQL error `ER_DUP_ENTRY`. Map to HTTP 409 (Conflict) in the service layer if desired.
+
+* **`synchronize` altering tables unexpectedly**
+
+  * Disable `DATABASE_SYNCHRONIZE` and switch to migrations in non-dev environments.
+
+---
+
+## Migrations (Optional for Prod)
+
+If you disable `synchronize`, add migration scripts and generate/apply them:
+
+```bash
+# example commands (adjust paths to your DataSource)
+npx typeorm migration:generate -d src/database/data-source.ts src/migrations/Init
+npx typeorm migration:run -d src/database/data-source.ts
+```
+
+> Ensure your `DataSource` reads `.env` and matches the settings above.
