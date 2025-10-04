@@ -1,8 +1,7 @@
 # My Contacts — REST API (NestJS + TypeORM + MySQL)
 
-A simple contacts API built with **NestJS 11**, **TypeORM 0.3**, and **MySQL**.
-
-This README explains how to configure, run, and test the project locally, including connecting to a local MySQL instance.
+A fully RESTful API for managing a contact list, built with **NestJS 11**, **TypeORM**, and **MySQL**.
+Designed with clean architecture principles, including layered modules, input validation, and automated testing.
 
 ---
 
@@ -270,4 +269,15 @@ npx typeorm migration:run -d src/database/data-source.ts
 * Documentation can be accessed at:
 ```bash
 http://localhost:3000/docs
+
 ```
+
+## 🔍 Tech Highlights
+
+- **NestJS 11** — Modular, strongly-typed backend framework
+- **TypeORM** — Repository pattern and entity mapping to MySQL
+- **ValidationPipe** — Input validation using `class-validator` and `class-transformer`
+- **Swagger (OpenAPI)** — Interactive API docs at `/docs`
+- **Exception Filters** — Consistent error handling (HTTPException)
+- **Jest + Supertest** — Unit and E2E tests
+- **ESLint + Prettier** — Clean, standardized code style
