@@ -16,6 +16,7 @@ describe('ContactsController', () => {
     findAll: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    updateFavorite: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -51,6 +52,7 @@ describe('ContactsController', () => {
         id: uuidv4(),
         name: dto.name,
         cellphone: dto.cellphone,
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -72,6 +74,7 @@ describe('ContactsController', () => {
         id,
         name: 'Bruno Santos',
         cellphone: '11999999999',
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -108,6 +111,7 @@ describe('ContactsController', () => {
             id: uuidv4(),
             name: 'Bruno',
             cellphone: '11990000001',
+            favorite: true,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -115,6 +119,7 @@ describe('ContactsController', () => {
             id: uuidv4(),
             name: 'Bruna',
             cellphone: '11990000002',
+            favorite: false,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -173,6 +178,7 @@ describe('ContactsController', () => {
         id,
         name: dto.name,
         cellphone: dto.cellphone,
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -226,6 +232,47 @@ describe('ContactsController', () => {
         NotFoundException,
       );
       expect(serviceMock.remove).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('updateFavorite', () => {
+    it('should call service.updateFavorite and return the contact with updated favorite', async () => {
+      const id = uuidv4();
+      const dto = { favorite: true };
+
+      const updated: Contact = {
+        id,
+        name: 'Bruno Santos',
+        cellphone: '11999999999',
+        favorite: dto.favorite,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      if (!serviceMock.updateFavorite) serviceMock.updateFavorite = jest.fn();
+      serviceMock.updateFavorite.mockResolvedValue(updated);
+
+      const result = await contactsController.updateFavorite(id, dto as any);
+
+      expect(serviceMock.updateFavorite).toHaveBeenCalledTimes(1);
+      expect(serviceMock.updateFavorite).toHaveBeenCalledWith(id, dto);
+      expect(result).toEqual(updated);
+    });
+
+    it('should propagate NotFoundException from service.updateFavorite', async () => {
+      const id = uuidv4();
+      const dto = { favorite: false };
+
+      if (!serviceMock.updateFavorite) serviceMock.updateFavorite = jest.fn();
+      serviceMock.updateFavorite.mockRejectedValue(
+        new NotFoundException(`Contact with id "${id}" not found`),
+      );
+
+      await expect(
+        contactsController.updateFavorite(id, dto as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(serviceMock.updateFavorite).toHaveBeenCalledWith(id, dto);
     });
   });
 });

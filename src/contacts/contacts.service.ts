@@ -1,12 +1,13 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
-import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Contact } from './entities/contact.entity';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { throwServiceError } from '../shared/common/service-error.util';
 import { FindAllContactsDto } from './dto/find-all-contacts.dto';
 import { IPaginatedResult } from '../shared/common/pagination-result.interface';
+import { UpdateContactDto } from './dto/update-contact.dto';
+import { UpdateFavoriteDto } from './dto/update-favorite.dto';
 
 @Injectable()
 export class ContactsService {
@@ -30,6 +31,7 @@ export class ContactsService {
     cellphone,
     page = 1,
     limit = 30,
+    favorite = false,
   }: FindAllContactsDto): Promise<IPaginatedResult<Contact>> {
     try {
       const where: FindOptionsWhere<Contact> = {};
@@ -40,6 +42,10 @@ export class ContactsService {
 
       if (cellphone) {
         where.cellphone = ILike(`%${cellphone}%`);
+      }
+
+      if (favorite) {
+        where.favorite = true;
       }
 
       const [data, total] = await this.contactsRepo.findAndCount({
@@ -104,6 +110,26 @@ export class ContactsService {
       }
     } catch (error) {
       throwServiceError(error, 'Error to remove contact', this.logger);
+    }
+  }
+
+  async updateFavorite(
+    id: string,
+    { favorite = true }: UpdateFavoriteDto,
+  ): Promise<Contact> {
+    try {
+      const merged = await this.contactsRepo.preload({
+        id,
+        favorite,
+      });
+
+      if (!merged)
+        throw new NotFoundException(`Contact with id "${id}" not found`);
+
+      const saved = await this.contactsRepo.save(merged);
+      return saved;
+    } catch (error) {
+      throwServiceError(error, 'Error to update favorite', this.logger);
     }
   }
 }

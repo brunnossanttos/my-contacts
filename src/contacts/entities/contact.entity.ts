@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -29,8 +29,9 @@ export class Contact {
   @Column()
   cellphone: string;
 
-  /* @Column()
-  favorite: boolean; */
+  @ApiPropertyOptional({ example: true, default: false })
+  @Column({ type: 'boolean', default: false })
+  favorite: boolean;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn()

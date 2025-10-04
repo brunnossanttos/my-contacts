@@ -27,7 +27,8 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { PaginatedContactsDto } from './dto/dto/paginated-contacts.dto';
+import { UpdateFavoriteDto } from './dto/update-favorite.dto';
+import { PaginatedContactsDto } from './dto/paginated-contacts.dto';
 
 @Controller('contacts')
 export class ContactsController {
@@ -57,6 +58,7 @@ export class ContactsController {
     required: false,
     description: 'Partial cellphone (ILIKE)',
   })
+  @ApiQuery({ name: 'favorite', required: false, example: true })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 30 })
   async findAll(
@@ -96,5 +98,17 @@ export class ContactsController {
   @ApiParam({ name: 'id', description: 'Contact UUID' })
   async remove(@Param('id') id: string) {
     return await this.contactsService.remove(id);
+  }
+
+  @Patch(':id/favorite')
+  @ApiOperation({ summary: 'Mark or unmark a contact as favorite' })
+  @ApiOkResponse({ type: Contact, description: 'Favorite state updated' })
+  @ApiNotFoundResponse({ description: 'Contact not found' })
+  @ApiParam({ name: 'id', description: 'Contact UUID' })
+  async updateFavorite(
+    @Param('id') id: string,
+    @Body() dto: UpdateFavoriteDto,
+  ): Promise<Contact> {
+    return await this.contactsService.updateFavorite(id, dto);
   }
 }

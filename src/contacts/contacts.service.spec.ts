@@ -61,6 +61,7 @@ describe('ContactsService', () => {
       const entity: Contact = {
         id: uuidv4(),
         ...dto,
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -102,6 +103,7 @@ describe('ContactsService', () => {
         id,
         name: 'Bruno Santos',
         cellphone: '11999999999',
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -140,6 +142,7 @@ describe('ContactsService', () => {
           id: '1',
           name: 'Bruno Santos',
           cellphone: '11990000001',
+          favorite: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -147,6 +150,7 @@ describe('ContactsService', () => {
           id: '2',
           name: 'Bruna Neves',
           cellphone: '11990000002',
+          favorite: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -167,7 +171,7 @@ describe('ContactsService', () => {
 
       expect(arg.skip).toBe((dto.page! - 1) * dto.limit!);
       expect(arg.take).toBe(dto.limit);
-      expect(arg.order).toEqual({ createdAt: 'DESC' });
+      expect(arg.order).toEqual({ name: 'ASC' });
 
       expect(arg.where.name).toBeInstanceOf(FindOperator);
       expect(arg.where.cellphone).toBeInstanceOf(FindOperator);
@@ -232,6 +236,7 @@ describe('ContactsService', () => {
         id,
         name: dto.name,
         cellphone: dto.cellphone,
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -274,6 +279,7 @@ describe('ContactsService', () => {
         id,
         name: 'Bruno Santos',
         cellphone: dto.cellphone,
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -298,6 +304,7 @@ describe('ContactsService', () => {
         id,
         name: 'x',
         cellphone: '11990000000',
+        favorite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -343,6 +350,96 @@ describe('ContactsService', () => {
       );
 
       expect(contactRepo.delete).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('updateFavorite', () => {
+    it('should update and save favorite when contact exists', async () => {
+      const id = uuidv4();
+      const dto = { favorite: true };
+
+      const merged: Contact = {
+        id,
+        name: 'Bruno Santos',
+        cellphone: '11999999999',
+        favorite: dto.favorite,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      contactRepo.preload!.mockResolvedValue(merged);
+      contactRepo.save!.mockImplementation(async (entity: Contact) => ({
+        ...entity,
+        updatedAt: new Date(),
+      }));
+
+      const result = await service.updateFavorite(id, dto as any);
+
+      expect(contactRepo.preload).toHaveBeenCalledTimes(1);
+      expect(contactRepo.preload).toHaveBeenCalledWith({ id, favorite: true });
+      expect(contactRepo.save).toHaveBeenCalledTimes(1);
+      expect(result.favorite).toBe(true);
+    });
+
+    it('should default favorite=true when dto is empty', async () => {
+      const id = uuidv4();
+
+      const merged: Contact = {
+        id,
+        name: 'Bruno',
+        cellphone: '11990000000',
+        favorite: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      contactRepo.preload!.mockResolvedValue(merged);
+      contactRepo.save!.mockResolvedValue(merged);
+
+      const result = await service.updateFavorite(id, {} as any);
+
+      expect(contactRepo.preload).toHaveBeenCalledWith({ id, favorite: true });
+      expect(result.favorite).toBe(true);
+    });
+
+    it('should propagate NotFoundException when preload returns undefined', async () => {
+      const id = uuidv4();
+      contactRepo.preload!.mockResolvedValue(undefined);
+
+      await expect(
+        service.updateFavorite(id, { favorite: false } as any),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      await expect(
+        service.updateFavorite(id, { favorite: false } as any),
+      ).rejects.toThrow(`Contact with id "${id}" not found`);
+
+      expect(contactRepo.preload).toHaveBeenCalledWith({ id, favorite: false });
+      expect(contactRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should wrap repository.save errors into InternalServerErrorException', async () => {
+      const id = uuidv4();
+      const dto = { favorite: false };
+
+      const merged: Contact = {
+        id,
+        name: 'Bruno',
+        cellphone: '11990000000',
+        favorite: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      contactRepo.preload!.mockResolvedValue(merged);
+      contactRepo.save!.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.updateFavorite(id, dto as any),
+      ).rejects.toMatchObject({
+        name: 'InternalServerErrorException',
+        message: 'Error to update favorite: internal server error',
+      });
     });
   });
 });
