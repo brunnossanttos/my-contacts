@@ -15,6 +15,7 @@ describe('ContactsController', () => {
     findOne: jest.fn(),
     findAll: jest.fn(),
     update: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -199,6 +200,32 @@ describe('ContactsController', () => {
         contactsController.update(id, dto as any),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(serviceMock.update).toHaveBeenCalledWith(id, dto);
+    });
+  });
+
+  describe('remove', () => {
+    it('should call service.remove and resolve void (no body)', async () => {
+      const id = uuidv4();
+
+      serviceMock.remove.mockResolvedValue(undefined);
+
+      await expect(contactsController.remove(id)).resolves.toBeUndefined();
+
+      expect(serviceMock.remove).toHaveBeenCalledTimes(1);
+      expect(serviceMock.remove).toHaveBeenCalledWith(id);
+    });
+
+    it('should propagate NotFoundException from service.remove', async () => {
+      const id = uuidv4();
+
+      serviceMock.remove.mockRejectedValue(
+        new NotFoundException(`Contact with id "${id}" not found`),
+      );
+
+      await expect(contactsController.remove(id)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(serviceMock.remove).toHaveBeenCalledWith(id);
     });
   });
 });

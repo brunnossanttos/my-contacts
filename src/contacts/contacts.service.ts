@@ -95,7 +95,15 @@ export class ContactsService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} contact`;
+  async remove(id: string): Promise<void> {
+    try {
+      const result = await this.contactsRepo.delete(id);
+
+      if (result.affected === 0) {
+        throw new NotFoundException(`Contact with id "${id}" not found`);
+      }
+    } catch (error) {
+      throwServiceError(error, 'Error to remove contact', this.logger);
+    }
   }
 }

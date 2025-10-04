@@ -21,6 +21,7 @@ const mockContactRepo = (): MockRepo<Contact> => ({
   findAndCount: jest.fn(),
   save: jest.fn(),
   preload: jest.fn(),
+  delete: jest.fn(),
 });
 
 describe('ContactsService', () => {
@@ -307,6 +308,41 @@ describe('ContactsService', () => {
         name: 'InternalServerErrorException',
         message: 'Error to update contact: internal server error',
       });
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete contact and resolve void when affected > 0', async () => {
+      const id = uuidv4();
+      (contactRepo.delete as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await expect(service.remove(id)).resolves.toBeUndefined();
+      expect(contactRepo.delete).toHaveBeenCalledTimes(1);
+      expect(contactRepo.delete).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw NotFoundException when affected is 0', async () => {
+      const id = uuidv4();
+      (contactRepo.delete as jest.Mock).mockResolvedValue({ affected: 0 });
+
+      await expect(service.remove(id)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(contactRepo.delete).toHaveBeenCalledWith(id);
+    });
+
+    it('should wrap unexpected errors into InternalServerErrorException', async () => {
+      const id = uuidv4();
+      (contactRepo.delete as jest.Mock).mockRejectedValue(new Error('db down'));
+
+      await expect(service.remove(id)).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+      await expect(service.remove(id)).rejects.toThrow(
+        'Error to remove contact: internal server error',
+      );
+
+      expect(contactRepo.delete).toHaveBeenCalledWith(id);
     });
   });
 });
