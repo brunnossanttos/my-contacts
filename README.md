@@ -17,10 +17,9 @@ This README explains how to configure, run, and test the project locally, includ
 * [API Overview](#api-overview)
 * [Testing](#testing)
 * [Linting & Formatting](#linting--formatting)
-* [Project Structure](#project-structure)
 * [Troubleshooting](#troubleshooting)
 * [Migrations (Optional for Prod)](#migrations-optional-for-prod)
-* [License](#license)
+* [Documentation](#documentation)
 
 ---
 
@@ -263,3 +262,12 @@ npx typeorm migration:run -d src/database/data-source.ts
 ```
 
 > Ensure your `DataSource` reads `.env` and matches the settings above.
+
+---
+
+## Documentation
+
+* Documentation can be accessed at:
+```bash
+http://localhost:3000/docs
+```
