@@ -5,6 +5,7 @@ import { CreateContactDto } from './dto/create-contact.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { Contact } from './entities/contact.entity';
 import { NotFoundException } from '@nestjs/common';
+import { IPaginatedResult } from '../shared/common/pagination-result.interface';
 
 describe('ContactsController', () => {
   let contactsController: ContactsController;
@@ -12,6 +13,7 @@ describe('ContactsController', () => {
   const serviceMock = {
     create: jest.fn(),
     findOne: jest.fn(),
+    findAll: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -47,6 +49,8 @@ describe('ContactsController', () => {
         id: uuidv4(),
         name: dto.name,
         cellphone: dto.cellphone,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       serviceMock.create.mockResolvedValue(created);
@@ -66,6 +70,8 @@ describe('ContactsController', () => {
         id,
         name: 'Bruno Santos',
         cellphone: '11999999999',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       serviceMock.findOne.mockResolvedValue(contact);
 
@@ -87,6 +93,72 @@ describe('ContactsController', () => {
       );
 
       expect(serviceMock.findOne).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should call service.findAll with query and return paginated result', async () => {
+      const query = { name: 'bru', cellphone: '1199', page: 2, limit: 5 };
+
+      const pageResult: IPaginatedResult<Contact> = {
+        data: [
+          {
+            id: uuidv4(),
+            name: 'Bruno',
+            cellphone: '11990000001',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: uuidv4(),
+            name: 'Bruna',
+            cellphone: '11990000002',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        page: 2,
+        limit: 5,
+        total: 12,
+        totalPages: 3,
+      };
+
+      serviceMock.findAll.mockResolvedValue(pageResult);
+
+      const result = await contactsController.findAll(query as any);
+
+      expect(serviceMock.findAll).toHaveBeenCalledTimes(1);
+      expect(serviceMock.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(pageResult);
+    });
+
+    it('should use defaults when query is empty', async () => {
+      const query = {};
+
+      const pageResult: IPaginatedResult<Contact> = {
+        data: [],
+        page: 1,
+        limit: 30,
+        total: 0,
+        totalPages: 1,
+      };
+
+      serviceMock.findAll.mockResolvedValue(pageResult);
+
+      const result = await contactsController.findAll(query as any);
+
+      expect(serviceMock.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(pageResult);
+    });
+
+    it('should propagate service errors', async () => {
+      const query = { name: 'erro' };
+      serviceMock.findAll.mockRejectedValue(new Error('boom'));
+
+      await expect(contactsController.findAll(query as any)).rejects.toThrow(
+        'boom',
+      );
+      expect(serviceMock.findAll).toHaveBeenCalledWith(query);
     });
   });
 });

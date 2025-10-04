@@ -6,11 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { Contact } from './entities/contact.entity';
+import { FindAllContactsDto } from './dto/find-all-contacts.dto';
+import { IPaginatedResult } from '../shared/common/pagination-result.interface';
 
 @Controller('contacts')
 export class ContactsController {
@@ -22,8 +25,10 @@ export class ContactsController {
   }
 
   @Get()
-  findAll() {
-    return this.contactsService.findAll();
+  async findAll(
+    @Query() query: FindAllContactsDto,
+  ): Promise<IPaginatedResult<Contact>> {
+    return await this.contactsService.findAll(query);
   }
 
   @Get(':id')

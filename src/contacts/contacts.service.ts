@@ -3,8 +3,10 @@ import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Contact } from './entities/contact.entity';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { throwServiceError } from '../shared/common/service-error.util';
+import { FindAllContactsDto } from './dto/find-all-contacts.dto';
+import { IPaginatedResult } from '../shared/common/pagination-result.interface';
 
 @Injectable()
 export class ContactsService {
@@ -23,8 +25,40 @@ export class ContactsService {
     }
   }
 
-  findAll() {
-    return `This action returns all contacts`;
+  async findAll({
+    name,
+    cellphone,
+    page = 1,
+    limit = 30,
+  }: FindAllContactsDto): Promise<IPaginatedResult<Contact>> {
+    try {
+      const where: FindOptionsWhere<Contact> = {};
+
+      if (name) {
+        where.name = ILike(`%${name}%`);
+      }
+
+      if (cellphone) {
+        where.cellphone = ILike(`%${cellphone}%`);
+      }
+
+      const [data, total] = await this.contactsRepo.findAndCount({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        order: { createdAt: 'DESC' },
+      });
+
+      return {
+        data,
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
+    } catch (error) {
+      throwServiceError(error, 'Error to find contacts', this.logger);
+    }
   }
 
   async findOne(id: string): Promise<Contact> {
